@@ -158,25 +158,40 @@ namespace Il2CppDumper
                         var e = fieldType.GetField("value__").FieldType;
                         i.SetValue(t, ReadPrimitive(e));
                     }
-                    else if (fieldType.IsArray)
+                    else if (fieldType == typeof(Il2CppAssemblyNameDefinition))
+                    {
+                        i.SetValue(t, ReadClass<Il2CppAssemblyNameDefinition>());
+                    }
+                    else if (fieldType == typeof(byte[]))
                     {
                         var arrayLengthAttribute = i.GetCustomAttribute<ArrayLengthAttribute>();
-                        if (!genericMethodCache.TryGetValue(fieldType, out var methodInfo))
-                        {
-                            methodInfo = readClassArray.MakeGenericMethod(fieldType.GetElementType());
-                            genericMethodCache.Add(fieldType, methodInfo);
-                        }
-                        i.SetValue(t, methodInfo.Invoke(this, new object[] { arrayLengthAttribute.Length }));
+                        i.SetValue(t, ReadClassArray<byte>(arrayLengthAttribute.Length));
                     }
                     else
                     {
-                        if (!genericMethodCache.TryGetValue(fieldType, out var methodInfo))
-                        {
-                            methodInfo = readClass.MakeGenericMethod(fieldType);
-                            genericMethodCache.Add(fieldType, methodInfo);
-                        }
-                        i.SetValue(t, methodInfo.Invoke(this, null));
+                        // NativeAOT doesn't work with MakeGenericMethod, so we can only manually generate
+                        // code for classes we need to use.
+                        throw new Exception($"ReadClass not implemented for class {i.FieldType.Name}");
                     }
+                    // else if (fieldType.IsArray)
+                    // {
+                    //     var arrayLengthAttribute = i.GetCustomAttribute<ArrayLengthAttribute>();
+                    //     if (!genericMethodCache.TryGetValue(fieldType, out var methodInfo))
+                    //     {
+                    //         methodInfo = readClassArray.MakeGenericMethod(fieldType.GetElementType());
+                    //         genericMethodCache.Add(fieldType, methodInfo);
+                    //     }
+                    //     i.SetValue(t, methodInfo.Invoke(this, new object[] { arrayLengthAttribute.Length }));
+                    // }
+                    // else
+                    // {
+                    //     if (!genericMethodCache.TryGetValue(fieldType, out var methodInfo))
+                    //     {
+                    //         methodInfo = readClass.MakeGenericMethod(fieldType);
+                    //         genericMethodCache.Add(fieldType, methodInfo);
+                    //     }
+                    //     i.SetValue(t, methodInfo.Invoke(this, null));
+                    // }
                 }
                 return t;
             }
